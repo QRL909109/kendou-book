@@ -1,0 +1,60 @@
+<template>
+  <view class="size-slider-wrap" wx-if="{{show}}">
+    <view class="size-small">A</view>
+    <slider @change="handleSliderChange" min="12" max="30" step="{{step}}" value="{{setting.fontSize}}"/>
+    <view class="size-big">A</view>
+  </view>
+</template>
+<script>
+import wepy from 'wepy'
+import { connect } from 'wepy-redux'
+import { changeSetting } from '@/store/actions/setting'
+
+@connect({
+  setting(state) {
+    return state.setting
+  }
+}, {
+  changeSetting
+})
+
+export default class SizeSlider  extends wepy.component {
+  props = {
+    show: {
+      default: false
+    }
+  }
+  data = {
+    step: 2,
+    fontSize: ''
+  }
+  methods = {
+    handleSliderChange(e) {
+      let num = e.detail.value
+      this.methods.changeSetting({
+        fontSize: num,
+        backGround: this.setting.backGround
+      })
+    }
+  }
+}
+</script>
+<style lang="less">
+.size-slider-wrap {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  box-shadow: 0rpx -10rpx 50rpx -10rpx rgba(0, 0, 0, 0.3);
+  .size-small {
+    font-size: 24rpx;
+    margin: 0 20rpx;
+  }
+  .size-big {
+    font-size: 72rpx;
+    margin: 0 20rpx;
+  }
+  slider {
+    width: 100%;
+  }
+}
+</style>

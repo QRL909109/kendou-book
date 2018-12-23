@@ -1,0 +1,15 @@
+{
+	"description": "读书",
+	"setting": {
+		"urlCheck": false,
+		"es6": false,
+		"postcss": false,
+		"minified": false,
+		"newFeature": true
+	},
+	"compileType": "miniprogram",
+	"appid": "XXXXXX",
+	"projectname": "book-wepy",
+	"miniprogramRoot": "./dist",
+	"condition": {}
+}

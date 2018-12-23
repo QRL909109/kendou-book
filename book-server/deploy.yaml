@@ -1,0 +1,23 @@
+apps:
+  - script: start.js
+    name: 'kendou-book'
+    env: 
+      COMMON_VARIABLE: true
+    env_production:
+      NODE_ENV: production
+deploy:
+  production:
+    user: qrl
+    host:
+      - XX.xx.xx.xx. // 改成自己的服务器
+    port: 'XXXX' // 改成自己的服务器端口号
+    ref: origin/master
+    repo:
+      git@XXXXXXX // 改成自己的仓库地址
+    path:
+      /www/kendou-book/production
+    ssh_options: StrictHostKeyChecking=no
+    pre-deploy: git fetch --all
+    post-deploy: 'cnpm install  && pm2 startOrRestart deploy.yaml --env production'
+    env:
+      NODE_ENV: production

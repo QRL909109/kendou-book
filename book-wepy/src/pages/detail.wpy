@@ -1,0 +1,245 @@
+<template>
+  <view class="detail-wrap container">
+    <view class="detail-box" style="overflow: {{leftShow? 'hidden': 'auto'}}; background: {{setting.backGround.background}};" @tap="handleCloseOther">
+      <view class="detail-title text-center" style="color: {{setting.backGround.color}}">{{title}}</view>
+      <text 
+        style="font-size: {{setting.fontSize + 'px'}}; color: {{setting.backGround.color}}">
+        {{content}}
+      </text>
+      <view class="detail-bottom-nav">
+        <button type="default" @tap="handleFetchPrev">
+          上一章
+        </button>
+        <button type="default" @tap="handleFetchNext">
+          下一章
+        </button>
+      </view>
+    </view>
+
+    <!-- 控制板 -->
+    <view class="detail-bar">
+      <view class="iconfont icon-more" @tap="handleOpenBook"></view>
+      <view class="iconfont icon-size" @tap="handleOpenSize"></view>
+      <view class="iconfont icon-controle" @tap="handleOpenBg"></view>
+    </view>
+
+    <!-- 左边侧边栏 -->
+    <swiperLeft 
+      :show.sync="leftShow"
+      :scrollId.sync="scrollIntoId"
+      :bookId.sync="bookId"
+      @toggle.user="handleOpenBook"
+      @detail.user="handleFetchChapter"
+    />
+
+    <view class="size-box">
+      <sizeSlider 
+        :show.sync="sizeShow"
+        @changle.user="handleChangeSize"
+      ></sizeSlider>
+    </view>
+
+    <view class="size-box">
+      <bgSelect 
+        :show.sync="bgShow"
+        @changle.user="handleChangeSize"
+      ></bgSelect>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+import request from '@/utils/request';
+import SwiperLeft from '@/components/swiper-left'
+import SizeSlider from '@/components/size-slider'
+import BgSelect from '@/components/bg-select'
+import { connect } from 'wepy-redux';
+import { changeChapterStore } from '@/store/actions/chapter'
+
+@connect({
+  book (state) {
+    return state.book
+  },
+  chapter (state) {
+    return state.chapter
+  },
+  setting (state) {
+    return state.setting
+  }
+}, {
+  changeChapterStore
+})
+
+export default class Detail extends wepy.page {
+  config = {
+    navigationBarTitleText: '啃豆读书'
+  }
+
+  components = {
+    swiperLeft: SwiperLeft,
+    sizeSlider: SizeSlider,
+    bgSelect: BgSelect,
+  }
+
+  data = {
+    title: '',
+    content: '',
+    leftShow: false, // 左边侧边栏
+    sizeShow: false, // 字体大小
+    bgShow: false, // 背景大小
+    bookId: '',
+    chapterId: '',
+    scrollIntoId: ''
+  }
+
+  methods = {
+    handleOpenBook() {
+      this.leftShow = !this.leftShow
+      this.$apply()
+    },
+
+    handleFetchChapter(id) {
+      this.chapterId = id
+      this.leftShow = !this.leftShow
+      this.$apply()
+      this.fetchDetailChapter(id)
+    },
+    async handleFetchPrev() {
+      await request({
+        url: '/api/book/prev',
+        data: {
+          chapterId: this.chapterId,
+          bookId: this.bookId
+        }
+      }).then(res => {
+        if (res.data.length > 0) {
+          this.changeDetail(res.data[0])
+        } else {
+          wx.showToast({
+            title: '无上一章内容啦',
+            icon: 'none'
+          })
+        }
+      })
+    },
+    async handleFetchNext() {
+      await request({
+        url: '/api/book/next',
+        data: {
+          chapterId: this.chapterId,
+          bookId: this.bookId
+        }
+      }).then(res => {
+        if (res.data.length > 0) {
+          this.changeDetail(res.data[0])
+        } else {
+          wx.showToast({
+            title: '无下一章内容啦',
+            icon: 'none'
+          })
+        }
+      })
+    
+    },
+    handleOpenSize() {
+      this.bgShow = false
+      this.sizeShow = !this.sizeShow
+      this.$apply()
+    },
+    handleOpenBg() {
+      this.sizeShow = false
+      this.bgShow = !this.bgShow
+      this.$apply()
+    },
+    handleCloseOther() {
+      this.bgShow = false
+      this.sizeShow = false
+    }
+  }
+
+  fetchDetailChapter(id) {
+    request({
+      url: '/api/book/chapter',
+      data: {
+        chapterId: this.chapterId,
+        bookId: this.bookId
+      }
+    }).then(res => {
+      this.changeDetail(res.data)
+    })
+  }
+  
+  changeDetail(res) {
+    this.title = ''
+    this.content = ''
+    this.$apply()
+    let { title, content, chapterId } = res
+      this.title = title
+      this.content = content
+      this.scrollIntoId = this.chapterId = chapterId
+      this.$apply()
+
+      changeChapterStore({
+        bookId: this.bookId,
+        chapterId,
+        sort: this.chapter.sort
+      })
+  }
+
+  onLoad(options = {}) {
+    this.scrollIntoId = this.chapterId = options.chapterId
+    this.bookId = options.bookId
+    this.$apply()
+    if (!this.chapterId) {
+      wx.showToast({
+        title: '链接出错啦',
+        icon: 'none',
+        duration: 2000
+      })
+    } else {
+      this.$apply()
+      this.fetchDetailChapter(this.chapterId)
+    }
+  }
+}
+</script>
+<style lang="less">
+.detail-wrap {
+  .iconfont {
+    padding: 20rpx;
+  }
+  .detail-box {
+    height: 90%;
+    padding: 0 30rpx 15%;
+    .detail-title {
+      font-size: 40rpx;
+      color: #000;
+      margin-bottom: 10rpx;
+    }
+    .detail-bottom-nav {
+      display: flex;
+      margin-top: 20rpx;
+    }
+  }
+  .detail-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    background: #f5f5f5;
+    width: 100%;
+    height: 8%;
+    line-height: 8%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 28rpx;
+  }
+  .size-box {
+    position: fixed;
+    bottom: 8%;
+    left: 0;
+    width: 100%;
+  }
+}
+</style>

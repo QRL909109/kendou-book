@@ -1,0 +1,60 @@
+<template>
+  <view class="bg-select-wrap" wx-if="{{show}}">
+    <repeat for="{{backGround}}" key="index" index="index" item="item">
+      <view class="bg-item {{setting.backGround.value == item.value ? 'active': ''}}" 
+      style="background: {{item.background}}" 
+      @tap="handleBgChange({{item}})">
+      </view>
+    </repeat>
+  </view>
+</template>
+<script>
+import wepy from 'wepy'
+import { connect } from 'wepy-redux'
+import { changeSetting } from '@/store/actions/setting'
+import backGround from '@/lib/backGround.js' 
+@connect({
+  setting(state) {
+    return state.setting
+  }
+}, {
+  changeSetting
+})
+
+export default class BgSelect  extends wepy.component {
+  props = {
+    show: {
+      default: false
+    }
+  }
+  data = {
+    backGround
+  }
+  methods = {
+    handleBgChange(val) {
+      this.methods.changeSetting({
+        fontSize: this.setting.fontSize,
+        backGround: val
+      })
+    }
+  }
+}
+</script>
+<style lang="less">
+.bg-select-wrap {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx;
+  box-shadow: 0rpx -10rpx 50rpx -10rpx rgba(0, 0, 0, 0.3);
+  justify-content: space-around;
+  .bg-item {
+    width: 100rpx;
+    height: 50rpx;
+    border: 1rpx solid #eee;
+    &.active {
+      border-color: #000;
+    }
+  }
+}
+</style>

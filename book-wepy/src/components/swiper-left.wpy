@@ -1,0 +1,148 @@
+
+<template>
+  <view class="swiper-left-comp {{show? 'show': ''}}">
+    <view class="mark" @tap="handleOpenBook"></view>
+    <view class="detail-chapter">
+      <view class="book-header">
+        <view class="book-title">
+          {{book.info.name}}
+        </view>
+        <view class="book-sort iconfont icon-group {{chapter.sort == 1 ? '' : 'resolve'}}" 
+        @tap="handleChangeSort"></view>
+      </view>
+
+      <view class="book-chapter-list">
+        <scroll-view
+          class="scroll-view-h"
+          scroll-y 
+          scroll-into-view="id_{{scrollId}}"
+        >
+        <repeat for="{{book.list}}" key="index" index="index" item="item">
+          <view class="chapter-item {{item.chapterId == scrollId ? 'active' : ''}}" @tap="handleIntoDetail({{item.chapterId}})" id="id_{{item.chapterId}}">
+            <view class="chapter-name">{{item.title}}</view>
+          </view>
+        </repeat>
+        </scroll-view>
+      </view>
+    </view>
+  </view>
+</template>
+<script>
+import wepy from 'wepy';
+import request from '@/utils/request';
+import { connect } from 'wepy-redux';
+import { changeChapterStore } from '@/store/actions/chapter'
+
+@connect({
+  book(state) {
+    return state.book;
+  },
+  chapter (state) {
+    return state.chapter
+  }
+}, {
+  changeChapterStore
+})
+export default class SwiperLeft extends wepy.component {
+  props = {
+    show: {
+      default: false,
+      twoWay: true
+    },
+    scrollId: {
+      default: '',
+      twoWay: true
+    },
+    bookId: {
+      default: ''
+    }
+  };
+  data = {};
+  methods = {
+    handleOpenBook() {
+      this.$emit('toggle');
+    },
+    handleChangeSort() {
+      this.$apply();
+      this.book.list.reverse()
+
+      this.methods.changeChapterStore({
+        bookId: this.bookId,
+        chapterId: this.scrollId,
+        sort: this.chapter.sort  == 1 ? -1 : 1
+      })
+      
+    },
+    handleIntoDetail(id) {
+      this.$emit('detail', id);
+    }
+  };
+}
+</script>
+<style lang="less">
+.swiper-left-comp {
+  width: 100%;
+  height: 92%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  transform: translate3d(-100%, 0, 0);
+  transition: transform 0.2s ease;
+  &.show {
+    transform: translate3d(0, 0, 0);
+  }
+  .mark {
+    background: rgba(0, 0, 0, 0.2);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+  }
+  .detail-chapter {
+    width: 80%;
+    height: 100%;
+    background: #f7f7f7;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .book-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25rpx;
+    .book-title {
+      font-size: 40rpx;
+      font-weight: 600;
+    }
+    .book-sort {
+      font-size: 40rpx;
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+      &.resolve {
+        transform: rotate(180deg);
+      }
+    }
+  }
+  .book-chapter-list {
+    height: 92%;
+    .scroll-view-h {
+      height: 100%;
+    }
+    .chapter-item {
+      border-bottom: 1rpx solid rgb(218, 217, 217);
+      .chapter-name {
+        padding: 38rpx;
+      }
+      &.active {
+        color: #ddd;
+      }
+    }
+  }
+}
+</style>

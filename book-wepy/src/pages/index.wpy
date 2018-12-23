@@ -1,0 +1,186 @@
+<template>
+  <view class="index-wrap container">
+    <view class="book-search">
+      <input 
+        placeholder="在网址: http://www.mytxt.cc/ 输入ID" 
+        confirm-type="search" 
+        class="book-input" 
+        placeholder-style="font-size:30rpx;"
+        @input="handleSearchInput"
+        @confirm="handleConfirmSearch"
+      />
+      <icon type="search" size="20" class="book-search-icon" @tap="handleConfirmSearch"/>
+    </view>
+    <view class="books-box">
+      <repeat for="{{tempBooks}}" key="index" index="index" item="item">
+        <view class="books-item" @tap="handleIntoBook({{item.bookId}})">
+          <image src="{{item.headImg}}" mode="aspectFit" class="books-image"/>
+          <view class="books-name">{{item.name}}</view>
+        </view>
+      </repeat>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+import { connect } from 'wepy-redux';
+import request from '@/utils/request';
+import { getStorageSync, setStorageSync } from '@/utils/storage';
+import { getBookDetail } from '@/store/actions/book'
+import { changeChapterStore } from '@/store/actions/chapter'
+import { changeSetting } from '@/store/actions/setting'
+@connect({
+    book (state) {
+      return state.book
+    },
+  }, {
+    getBookDetail,
+    changeChapterStore,
+    changeSetting
+  })
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '啃豆读书',
+    enablePullDownRefresh: true,
+  }
+
+  components = {}
+
+  data = {
+    books: [],
+    tempBooks: [],
+    search: ''
+  }
+
+  methods = {
+    async handleIntoBook(id) {
+      // 获取已读最新章节
+      let store = getStorageSync('' + id) || {}
+
+      this.methods.changeChapterStore({
+        bookId: '' + id,
+        ...store
+      })
+
+      let chapterId = store.chapterId
+      await this.methods.getBookDetail({
+        sort: store.sort || 1,
+        id
+      })
+      if (!store.chapterId) {
+        chapterId = this.book.list.find(item => item.chapterId).chapterId
+      }
+      wx.navigateTo({
+        url: `detail?bookId=${id}&chapterId=${chapterId}`
+      })
+    },
+    handleSearchInput(e) {
+      this.search = e.detail.value
+    },
+    handleConfirmSearch() {
+      // 需要是数字的ID
+      if (this.search == +this.search) {
+        this.taskFindBook(this.search)
+      } else {
+        wx.showToast({
+          title: 'ID需要是数字',
+          icon: 'none',
+        })
+      }
+    }
+  }
+
+  fetchAllBook() {
+    request({
+      url: '/api/book/all',
+      data: {
+        page: 1,
+        id: ''
+      }
+    }).then(res => {
+      this.books = this.tempBooks = res.data
+      this.$apply()
+      wx.stopPullDownRefresh()
+      console.log(333, this.tempBooks)
+    });
+  }
+
+  taskFindBook(id) {
+    if (!id) {
+      this.tempBooks = this.books
+      return
+    }
+    request({
+      url: '/api/book/find',
+      data: {
+        id
+      }
+    }).then(res => {
+      console.log(444, res)
+      if (res.data.isExit) {
+        this.tempBooks = this.books.filter(item => item.bookId == res.data.bookId)
+        this.$apply()
+      } else {
+        wx.showToast({
+          title: '爬虫努力开启中.....',
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    })
+  }
+
+  initData() {
+    let setting = getStorageSync('setting')
+    if (setting) {
+      this.methods.changeSetting(setting)
+    }
+  }
+  onLoad() {
+    this.initData()
+    this.fetchAllBook()
+  }
+  onPullDownRefresh() {
+    this.fetchAllBook()
+  }
+}
+</script>
+<style lang="less">
+.index-wrap {
+  .book-search {
+    padding: 15rpx;
+    position: relative;
+    .book-input {
+      background: #dddddd;
+      border-radius: 40rpx;
+      padding: 20rpx;
+    }
+    .book-search-icon {
+      position: absolute;
+      top: 50%;
+      right: 3%;
+      transform: translate(-50%,-50%);
+      z-index: 2;
+    }
+  }
+  .books-box{
+    display: flex;
+    flex-wrap: wrap;
+    padding: 20rpx;
+  }
+  .books-item {
+    width: 33%;
+    .books-image {
+      width: 100%;
+      height: 300rpx;
+      margin: 10rpx auto;
+    }
+    .books-name {
+      text-align: center;
+      font-size: 26rpx;
+    }
+  }
+}
+</style>
